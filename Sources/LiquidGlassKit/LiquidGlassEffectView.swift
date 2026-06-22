@@ -71,6 +71,8 @@ public class LiquidGlassEffect: UIVisualEffect {
     public enum Style {
         case regular, clear
 
+        // 1. Прячем свойство от старого компилятора, так как UIGlassEffect не существует в старых SDK
+        #if compiler(>=6.2)
         @available(iOS 26.0, *)
         var nativeStyle: UIGlassEffect.Style {
             switch self {
@@ -78,6 +80,7 @@ public class LiquidGlassEffect: UIVisualEffect {
             case .clear: .clear
             }
         }
+        #endif
 
         var liquidGlass: LiquidGlass {
             switch self {
@@ -144,8 +147,12 @@ public protocol AnyVisualEffectView: UIView {
 
 extension UIVisualEffectView: AnyVisualEffectView { }
 
+// 2. Добавляем @MainActor для корректной работы с UIKit-потоком в Swift 6.
+@MainActor
 public func VisualEffectView(effect: UIVisualEffect?) -> AnyVisualEffectView {
     if let effect = effect as? LiquidGlassEffect {
+        // 3. Компилируем нативный код iOS 26 только в Xcode 26+ (Swift 6.2+)
+        #if compiler(>=6.2)
         if #available(iOS 26.0, *), effect.isNative {
             let nativeEffect = UIGlassEffect(style: effect.style.nativeStyle)
             nativeEffect.isInteractive = effect.isInteractive
@@ -156,7 +163,12 @@ public func VisualEffectView(effect: UIVisualEffect?) -> AnyVisualEffectView {
             // Returns custom iOS 18 implementation
             return LiquidGlassEffectView(effect: effect)
         }
+        #else
+        // Для старых версий Xcode всегда возвращаем кастомную реализацию iOS 18
+        return LiquidGlassEffectView(effect: effect)
+        #endif
     } else if let effect = effect as? LiquidGlassContainerEffect {
+        #if compiler(>=6.2)
         if #available(iOS 26.0, *), effect.isNative {
             let nativeEffect = UIGlassContainerEffect()
             nativeEffect.spacing = effect.spacing
@@ -166,6 +178,10 @@ public func VisualEffectView(effect: UIVisualEffect?) -> AnyVisualEffectView {
             // Returns custom iOS 18 implementation
             return LiquidGlassEffectView(effect: effect)
         }
+        #else
+        // Фолбэк для старых версий Xcode
+        return LiquidGlassEffectView(effect: effect)
+        #endif
     } else {
         return UIVisualEffectView(effect: effect)
     }
