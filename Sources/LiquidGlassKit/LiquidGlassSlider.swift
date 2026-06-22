@@ -5,8 +5,24 @@
 //  Created by Alexey Demin on 2025-12-25.
 //
 
-import UIKit
 internal import MetalKit
+#if !compiler(>=6.2)
+import UIKit
+
+// Этот шим добавляет поддержку UISlider.Style для старых версий Xcode
+extension UISlider {
+    public enum Style: Int {
+        case `default` = 0
+        case thumbless = 1
+    }
+    
+    // Если библиотека также обращается к свойству sliderStyle, заглушим его
+    public var sliderStyle: Style {
+        get { .default }
+        set { }
+    }
+}
+#endif
 
 /// A custom slider control that replicates the iOS 26 Liquid Glass sliding style.
 /// Fully compatible with UISlider interface for drop-in replacement.
